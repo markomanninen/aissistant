@@ -8,8 +8,7 @@ Basic import line:
 
 from aissistant import search, index, get_profile, set_profile
 
-Reconnect module if kernel has restarted in Noteable, or you get error like
-'OperationalError: attempt to write a readonly database':
+Reconnect module if kernel has restarted in Noteable:
 
 from importlib import reload
 import aissistant
@@ -40,7 +39,7 @@ init_vector_table_and_index()
 Personal profile functions
 ==========================
 
-Add or update a field in the personal profile. ->
+Add or update a field in the personal profile. Use semicolons in a list of items in a value string. ->
 
 set_profile(field_name, value)
 
@@ -110,9 +109,17 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 if os.path.exists(FAISS_INDEX_FILE):
     faiss_index = faiss.read_index(FAISS_INDEX_FILE)
 else:
-	# Create the FAISS index
-	dimension = model.get_sentence_embedding_dimension()
-	faiss_index = faiss.IndexFlatL2(dimension)
+    # Create the FAISS index
+    dimension = model.get_sentence_embedding_dimension()
+    faiss_index = faiss.IndexFlatL2(dimension)
+
+def ensure_connection():
+    global conn, c
+    try:
+        c.execute("SELECT 1")
+    except sqlite3.ProgrammingError:
+        conn = sqlite3.connect(CONVERSATIONS_DB, check_same_thread=False)
+        c = conn.cursor()
 
 # Connect to the database
 conn = sqlite3.connect(CONVERSATIONS_DB, check_same_thread=False)
@@ -125,8 +132,15 @@ CREATE TABLE IF NOT EXISTS conversation_indexed
 ''')
 conn.commit()
 
+# Create a table for the personal profile
+c.execute('''
+CREATE TABLE IF NOT EXISTS personal_profile
+(field_name TEXT PRIMARY KEY, value TEXT)
+''')
+conn.commit()
+
 def index(input_text, output_text):
-	add_conversation_to_db_and_index_with_timestamp(input_text, output_text)
+    add_conversation_to_db_and_index_with_timestamp(input_text, output_text)
 
 def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
     # Convert the conversation to a vector
@@ -134,6 +148,8 @@ def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
 
     # Get the current timestamp
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    ensure_connection()
 
     # Add the conversation to the database
     c.execute('INSERT INTO conversation_indexed (input, output, vector, timestamp) VALUES (?, ?, ?, ?)',
@@ -160,6 +176,8 @@ def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=No
     if all_fields:
         sql_select = '*'
 
+    ensure_connection()
+
     # Retrieve the corresponding conversations from the database
     for idx in I[0]:
         index_id = int(idx)
@@ -177,22 +195,24 @@ def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=No
             yield row
 
 def init_vector_table_and_index():
-	# Sample invented conversations with timestamps
+    # Sample invented conversations with timestamps
     sample_conversations = [
 	('How is the weather today?', 'It is sunny and warm.', '2023-07-01 10:00:00'),
 	('What is your favorite book?', 'I enjoy reading science fiction novels.', '2023-07-01 15:30:00'),
 	('Can you recommend a good restaurant?', 'Sure! How about trying the Italian place downtown?', '2023-07-10 12:45:00'),
 	('Tell me a joke.', 'Why did the chicken cross the road? To get to the other side!', '2023-07-15 18:00:00')
-	]
+    ]
 
-	# Add the sample conversations to the database and FAISS index
+    ensure_connection()
+
+    # Add the sample conversations to the database and FAISS index
     for input_text, output_text, timestamp in sample_conversations:
         conversation_vector = model.encode([input_text + ' ' + output_text])[0]
         c.execute('INSERT INTO conversation_indexed (input, output, vector, timestamp) VALUES (?, ?, ?, ?)', (input_text, output_text, conversation_vector.tobytes(), timestamp))
         faiss_index.add(np.array([conversation_vector]))
         conn.commit()
 
-	# Save the FAISS index to a file
+    # Save the FAISS index to a file
     faiss.write_index(faiss_index, FAISS_INDEX_FILE)
 
 def prune_db_and_index():
@@ -209,12 +229,6 @@ def prune_db_and_index():
 #########################################
 # PROFILE FUNCTIONS
 #########################################
-
-# Create a table for the personal profile
-c.execute('''CREATE TABLE IF NOT EXISTS personal_profile (
-             field_name TEXT PRIMARY KEY,
-             value TEXT
-             )''')
 
 def set_profile(field_name, value):
     add_or_update_field_in_profile(field_name, value)
