@@ -14,18 +14,18 @@ Then proceed to the next step 2 in one run.
 
 Run the following commands:
 
-\`\`\`
+```
 !pip install -q faiss-cpu
 !pip install -q sentence-transformers
-\`\`\`
+```
 
 ### 2.2 Download Necessary Files
 
 Download the aissistant.py file using the provided link:
 
-\`\`\`
+```
 !wget https://raw.githubusercontent.com/markomanninen/aissistant/main/aissistant.py
-\`\`\`
+```
 
 ## 3. Upload or Create Database and Vector Index Files
 
@@ -33,9 +33,9 @@ Upload conversations.db and faiss_index.idx files to the same directory, or crea
 
 ## 4. Import and Set Up Module
 
-\`\`\`
+```
 from aissistant import search, index, get_profile, set_profile
-\`\`\`
+```
 
 ## 5. Vector Conversation Database & Personal Profile Functions
 
