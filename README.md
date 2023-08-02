@@ -35,7 +35,7 @@ from aissistant import search, index, get_profile, set_profile
 
 Instruct, how the following functions are used 1) in the chat by giving trigger examples, and 2) at Noteable cell in a programmable way.
 
-Search: Use search(query, n=1, start_date=None, end_date=None, all_fields=False) to find similar conversations.
+Search: Use search(query, n=1, start_date=None, end_date=None, all_fields=False) to find similar conversations. Returns a generator.
 Index: Use index(prompt_input_text, response_text) to add conversations to the index.
 Get Profile: Use get_profile(field_name=None) to retrieve profile information.
 Set Profile: Use set_profile(field_name, value) to update your profile.
