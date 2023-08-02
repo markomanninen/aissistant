@@ -20,7 +20,7 @@ Module API endpoints
 
 Search is used to get n similar results from the vector base combined with
 the original prompt and response texts and the associated timestamp from
-the sqlite data storage. ->
+the sqlite data storage. Returns generator. ->
 
 search(query, n = 1, start_date = None, end_date = None, all_fields = False)
 
@@ -163,7 +163,7 @@ def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
     faiss.write_index(faiss_index, FAISS_INDEX_FILE)
 
 def search(query, n = 1, start_date = None, end_date = None, all_fields = False):
-	return search_conversation_with_date_filter_and_n_results(query, n=n, start_date=start_date, end_date=end_date, all_fields = all_fields)
+    return search_conversation_with_date_filter_and_n_results(query, n=n, start_date=start_date, end_date=end_date, all_fields = all_fields)
 
 def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=None, end_date=None, all_fields = False):
     # Convert the query to a vector
