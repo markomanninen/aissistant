@@ -8,11 +8,10 @@ Basic import line:
 
 from aissistant import search, index, get_profile, set_profile
 
-Reconnect module if kernel has restarted in Noteable:
+Reconnect the module if the kernel has restarted in Noteable or you get a database write error:
 
 from importlib import reload
-import aissistant
-reload(aissistant)
+import aissistant; reload(aissistant)
 from aissistant import search, index, get_profile, set_profile
 
 Module API endpoints
@@ -20,39 +19,48 @@ Module API endpoints
 
 Search is used to get n similar results from the vector base combined with
 the original prompt and response texts and the associated timestamp from
-the sqlite data storage. Returns generator. ->
+the SQLite data storage. Returns generator of tuples with the numerical indices
+0=input prompt, 1=response text, 2=timestamp, and optionally, if all_fields=True,
+additional fields are 4=vector blog, and 5=row id. ->
 
-search(query, n = 1, start_date = None, end_date = None, all_fields = False)
+search(query, n=1, start_date=None, end_date=None, all_fields=False)
 
-Index is a shorthand function used to add prompt and chatgpt response to
-the FAISS index and sqlite database table ->
+Index is a shorthand function used to add prompt and ChatGPT responses to
+the FAISS index and SQLite database table ->
 
 index(prompt_input_text, response_text)
 
-Administration functions are used to prune sqlite table and FAISS indices, and
+Administration functions are used to prune SQLite table and FAISS indices and
 add new text data. ->
 
 prune_db_and_index()
 init_vector_table_and_index()
 
+Retrieve SQLite database cursor handle for querying data.
+You can use execute and fetch function with the returned cursor.
+For example, retrieve the latest entries, or count the rows in the database. ->
+
+retrieve_cursor()
 
 Personal profile functions
 ==========================
 
-Add or update a field in the personal profile. Use semicolons in a list of items in a value string. ->
+Add or update a field in the personal profile. Use semicolons in a list of items
+in a value string. ->
 
 set_profile(field_name, value)
 
-Remove a field from the personal profile. ->
+Remove a field/all fields from the personal profile. ->
 
 delete_field_from_profile(field_name)
+delete_all_fields_from_profile()
 
 Retrieve the entire profile or specific fields. ->
 
 get_profile(field_name=None)
 
-Examples for plugin behaviour
------------------------------
+Examples of plugin behaviour
+----------------------------
 
 1. Updating Profile
 
@@ -79,7 +87,7 @@ Functionality: The Noteable plugin can be called to update fields or fetch the e
 Additional Considerations
 
 Dynamic Fields: The profile structure allows for dynamic fields, each containing a value that can be a semicolon-separated list of phrases and keywords.
-Flexibility: The system can be further customized to recognize specific commands or queries related to the profile, enhancing the personalized interaction.
+Flexibility: The system can be further customized to recognize specific commands or queries related to the profile, enhancing personalized interaction.
 
 This functionality creates a more personalized and engaging experience, allowing the system to "remember" who you are and adapt to your unique needs and preferences. It also lays the foundation for more advanced features, such as predictive suggestions or integration with other tools and services.
 
@@ -113,17 +121,29 @@ else:
     dimension = model.get_sentence_embedding_dimension()
     faiss_index = faiss.IndexFlatL2(dimension)
 
+# SQL Query cursor, and connection handles
+c, conn = None, None
+
+def retrieve_cursor():
+    """Retrieve sqlite database cursor handle for querying data.
+	   You can use, for example, execute and fetch function with the returned cursor."""
+    return ensure_connection()
+
 def ensure_connection():
+    """Ensure, that the database connection and query cursors are open and valid."""
     global conn, c
-    try:
-        c.execute("SELECT 1")
-    except sqlite3.ProgrammingError:
+    if not c or not conn:
         conn = sqlite3.connect(CONVERSATIONS_DB, check_same_thread=False)
         c = conn.cursor()
+    try:
+        c.execute("SELECT 1")
+    except:
+        conn = sqlite3.connect(CONVERSATIONS_DB, check_same_thread=False)
+        c = conn.cursor()
+    return c
 
 # Connect to the database
-conn = sqlite3.connect(CONVERSATIONS_DB, check_same_thread=False)
-c = conn.cursor()
+ensure_connection()
 
 # Create the table if it doesn't exist
 c.execute('''
@@ -152,8 +172,7 @@ def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
     ensure_connection()
 
     # Add the conversation to the database
-    c.execute('INSERT INTO conversation_indexed (input, output, vector, timestamp) VALUES (?, ?, ?, ?)',
-              (input_text, output_text, conversation_vector.tobytes(), timestamp))
+    c.execute('INSERT INTO conversation_indexed (input, output, vector, timestamp) VALUES (?, ?, ?, ?)', (input_text, output_text, conversation_vector.tobytes(), timestamp))
     conn.commit()
 
     # Add the conversation to the FAISS index
@@ -162,8 +181,8 @@ def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
     # Save the FAISS index to a file
     faiss.write_index(faiss_index, FAISS_INDEX_FILE)
 
-def search(query, n = 1, start_date = None, end_date = None, all_fields = False):
-    return search_conversation_with_date_filter_and_n_results(query, n=n, start_date=start_date, end_date=end_date, all_fields = all_fields)
+def search(query, n=1, start_date=None, end_date=None, all_fields=False):
+    return search_conversation_with_date_filter_and_n_results(query, n=n, start_date=start_date, end_date=end_date, all_fields=all_fields)
 
 def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=None, end_date=None, all_fields = False):
     # Convert the query to a vector
@@ -174,7 +193,7 @@ def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=No
 
     sql_select = 'input, output, timestamp'
     if all_fields:
-        sql_select = '*'
+        sql_select = 'input, output, timestamp, vector, id'
 
     ensure_connection()
 
@@ -236,6 +255,11 @@ def set_profile(field_name, value):
 def add_or_update_field_in_profile(field_name, value):
     """Add or update a field in the personal profile."""
     c.execute('INSERT OR REPLACE INTO personal_profile (field_name, value) VALUES (?, ?)', (field_name, value))
+    conn.commit()
+
+def delete_all_fields_from_profile():
+    """Remove all fields and values from the personal profile."""
+    c.execute('DELETE FROM personal_profile')
     conn.commit()
 
 def delete_field_from_profile(field_name):
