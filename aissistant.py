@@ -1,95 +1,201 @@
 """
-These external libraries are required in Noteable:
+Module Requirements
+===================
 
-!pip install -q faiss-cpu
-!pip install -q sentence-transformers
+These external libraries are required in Noteable (-q is for quiet):
+
+pip install -q faiss
+pip install -q sentence-transformers
 
 Basic import line:
 
 from aissistant import search, index, get_profile, set_profile
 
-Reconnect the module if the kernel has restarted in Noteable or you get a database write error:
+Reconnect the module if the kernel has restarted in Noteable or you get a
+database write error:
 
 from importlib import reload
 import aissistant; reload(aissistant)
 from aissistant import search, index, get_profile, set_profile
 
-Module API endpoints
+Module API Endpoints
 ====================
 
-Search is used to get n similar results from the vector base combined with
-the original prompt and response texts and the associated timestamp from
-the SQLite data storage. Returns generator of tuples with the numerical indices
-0=input prompt, 1=response text, 2=timestamp, and optionally, if all_fields=True,
-additional fields are 4=vector blog, and 5=row id. ->
+Search
+------
+
+Used to get n similar results from the vector base combined with the original
+prompt and response texts and the associated timestamp from the SQLite data
+storage. Returns a generator of tuples with the numerical indices 0=input prompt,
+1=response text, 2=timestamp, and optionally, if all_fields=True, additional
+fields are 3=vector blob, and 4=row id.
 
 search(query, n=1, start_date=None, end_date=None, all_fields=False)
 
-Index is a shorthand function used to add prompt and ChatGPT responses to
-the FAISS index and SQLite database table ->
+Basic Search for a Single Result:
+
+Search for a single similar result for a given query.
+
+result = search('Tell me a joke!', n=1)
+print(result)
+
+Search with Date Filters:
+
+Search for results within a specific date range.
+
+results = search('What is the weather forecast?', n=3, start_date='2023-07-01', end_date='2023-07-31')
+for result in results:
+    print(result)
+
+Search with All Fields:
+
+Retrieve all fields, including vector blob and row ID, for the top 5 matches.
+
+results = search('Recommend a restaurant.', n=5, all_fields=True)
+for result in results:
+    print(result)
+
+Search with Custom Parameters:
+
+Combine different parameters to customize the search. In this example, we're
+looking for two results within a date range and including all fields.
+
+results = search('Tell me about space exploration.', n=2, start_date='2023-01-01', end_date='2023-06-30', all_fields=True)
+for result in results:
+    print(result)
+
+Index
+-----
+
+A shorthand function used to add prompt and ChatGPT responses to the FAISS index
+and SQLite database table.
 
 index(prompt_input_text, response_text)
 
-Administration functions are used to prune SQLite table and FAISS indices and
-add new text data. ->
+Administration Functions
+========================
+
+Used to prune SQLite table and FAISS indices and add new text data.
 
 prune_db_and_index()
 init_vector_table_and_index()
 
-Retrieve SQLite database cursor handle for querying data.
-You can use execute and fetch function with the returned cursor.
-For example, retrieve the latest entries, or count the rows in the database. ->
+Retrieve SQLite Database Cursor
 
-retrieve_cursor()
+Retrieve SQLite database cursor handle for querying data. You can use execute
+and fetch functions with the returned cursor. For example, retrieve the latest
+entries or count the rows in the database.
 
-Personal profile functions
+Example:
+
+Suppose you want to retrieve the latest 5 conversations from the database. You
+can use the retrieve_cursor function to get the database cursor and then run a
+custom SQL query to fetch the required data.
+
+from aissistant import retrieve_cursor
+
+cursor = retrieve_cursor()
+
+cursor.execute('SELECT input, output, timestamp FROM conversation_indexed ORDER BY timestamp DESC LIMIT 5')
+
+latest_conversations = cursor.fetchall()
+for conversation in latest_conversations:
+    print(conversation)
+
+In this example, we're using the cursor obtained from retrieve_cursor to execute
+a custom SQL query. This query selects the input, output, and timestamp fields
+from the conversations_table (replace with the actual table name), orders the
+results by timestamp in descending order, and limits the results to 5.
+
+Personal Profile Functions
 ==========================
 
-Add or update a field in the personal profile. Use semicolons in a list of items
-in a value string. ->
+Add or Update Profile Fields
+----------------------------
 
-set_profile(field_name, value)
+Add or update one or more fields in the personal profile. You can provide
+individual or multiple fields simultaneously using keyword arguments. Returns
+True if successful and False if there's an error.
 
-Remove a field/all fields from the personal profile. ->
+set_profile(**kwargs) -> bool
 
-delete_field_from_profile(field_name)
+Example:
+
+set_profile(name="John", age="30", interests="Reading;Hiking;Cooking")
+
+Remove Profile Field/All Fields
+-------------------------------
+
+Remove a specific field or all fields from the personal profile.
+
+delete_field_from_profile(field_name=None)
 delete_all_fields_from_profile()
 
-Retrieve the entire profile or specific fields. ->
+Retrieve Profile
+----------------
 
-get_profile(field_name=None)
+Retrieve the personal profile information in one of three ways: the entire
+profile, a specific field, or multiple fields.
+
+get_profile(*field_names) -> Union[str, List[Tuple[str, str]]]
+
+Examples:
+
+Retrieve the entire profile:
+
+entire_profile = get_profile()
+
+Retrieve a specific field:
+
+age = get_profile("age")
+
+Retrieve multiple fields:
+
+name_and_age = get_profile("name", "age")
 
 Examples of plugin behaviour
-----------------------------
+============================
 
 1. Updating Profile
 
 Trigger: Phrases like "update my personal profile."
-Action: Specify the field and the new content, and the system will update the profile accordingly.
+Action: Specify the field and the new content, and the system will update the
+profile accordingly.
 Function: set_profile(field_name, value)
 
 2. Querying Profile
 
-Trigger: Questions about your profile, such as "What are my plans?" or "Tell me about my interests."
-Action: The system retrieves the relevant information from the profile based on the query.
+Trigger: Questions about your profile, such as "What are my plans?" or "Tell me
+about my interests."
+Action: The system retrieves the relevant information from the profile based on
+the query.
 Function: get_profile(field_name=None)
 
 3. Utilizing Profile in Conversations
 
-Action: The system uses the profile information to tailor responses and suggestions based on your preferences, interests, and other profile fields.
-Example: If you ask for restaurant recommendations, the system can consider your dietary preferences from the profile.
+Action: The system uses the profile information to tailor responses and
+suggestions based on your preferences, interests, and other profile fields.
+Example: If you ask for restaurant recommendations, the system can consider your
+dietary preferences from the profile.
 
 4. Integration with Noteable
 
-Storage: The profile is stored and managed within Noteable using an SQLite table, allowing for persistence across sessions.
-Functionality: The Noteable plugin can be called to update fields or fetch the entire profile as needed.
+Storage: The profile is stored and managed within Noteable using an SQLite table,
+allowing for persistence across sessions.
+Functionality: The Noteable plugin can be called to update fields or fetch the
+entire profile as needed.
 
 Additional Considerations
 
-Dynamic Fields: The profile structure allows for dynamic fields, each containing a value that can be a semicolon-separated list of phrases and keywords.
-Flexibility: The system can be further customized to recognize specific commands or queries related to the profile, enhancing personalized interaction.
+Dynamic Fields: The profile structure allows for dynamic fields, each containing
+a value that can be a semicolon-separated list of phrases and keywords.
+Flexibility: The system can be further customized to recognize specific commands
+or queries related to the profile, enhancing personalized interaction.
 
-This functionality creates a more personalized and engaging experience, allowing the system to "remember" who you are and adapt to your unique needs and preferences. It also lays the foundation for more advanced features, such as predictive suggestions or integration with other tools and services.
+This functionality creates a more personalized and engaging experience, allowing
+the system to "remember" who you are and adapt to your unique needs and preferences.
+It also lays the foundation for more advanced features, such as predictive
+suggestions or integration with other tools and services.
 
 """
 
