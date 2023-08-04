@@ -1,4 +1,12 @@
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+
+class PostInstallCommand(install):
+    def run(self):
+        install.run(self)
+        print("\n\nWelcome to aissistant!")
+        print("For usage tips and help, you can call `help(aissistant)` or access `aissistant.__doc__`, and `dir(aissistant)` to see the functions and `help(any_function)` after importing the module.")
+        print("\nEnjoy!\n")
 
 with open('README.md', 'r') as file:
     long_description = file.read()
@@ -6,6 +14,7 @@ with open('README.md', 'r') as file:
 setup(
     name='aissistant',
     version=0.1,
+	cmdclass={'install': PostInstallCommand},
     packages=find_packages(),
     install_requires=[
         'faiss',
@@ -30,14 +39,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
-    description="""Aissistant v0.1
-
-Initialization prompt for persistent conversation vector database and personal profile in ChatGPT using Noteable plugin and aissistant module written by Marko T. Manninen (https://github.com/markomanninen/aissistant/)
-
-Get creative and productive with this initialization script in ChatGPT that utilizes the Noteable plugin. Natively, you can create, edit, and run code and generate data within notebooks as well as in ChatGPT interchangeably, back and forth. By using this initialization prompt, you can use the combined environment to store data and explore past conversations, as well as manage profile information for a more intelligent chat and coding experience.
-
-Copyright © 08/2023
-""",
+    description="Aissistant v0.1",
     long_description=long_description,
     long_description_content_type='text/markdown',
 )
