@@ -93,6 +93,7 @@ This functionality creates a more personalized and engaging experience, allowing
 
 """
 
+from typing import List, Tuple, Generator, Union
 from datetime import datetime
 import sqlite3
 import faiss
@@ -101,14 +102,14 @@ import numpy as np
 import os
 
 # Conversations database name
-CONVERSATIONS_DB = 'conversation.db'
+CONVERSATIONS_DB: str = 'conversation.db'
 
 ###############################################
 # VECTOR BASED PROMT+RESPONSE STORAGE FUNCTIONS
 ###############################################
 
 # Functions for adding and searching conversations with permanent FAISS index storage
-FAISS_INDEX_FILE = 'faiss_index.idx'
+FAISS_INDEX_FILE: str = 'faiss_index.idx'
 
 # Load the SentenceTransformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -124,12 +125,12 @@ else:
 # SQL Query cursor, and connection handles
 c, conn = None, None
 
-def retrieve_cursor():
+def retrieve_cursor() -> sqlite3.Cursor:
     """Retrieve sqlite database cursor handle for querying data.
 	   You can use, for example, execute and fetch function with the returned cursor."""
     return ensure_connection()
 
-def ensure_connection():
+def ensure_connection() -> sqlite3.Cursor:
     """Ensure, that the database connection and query cursors are open and valid."""
     global conn, c
     if not c or not conn:
@@ -159,8 +160,8 @@ CREATE TABLE IF NOT EXISTS personal_profile
 ''')
 conn.commit()
 
-def index(input_text, output_text):
-    add_conversation_to_db_and_index_with_timestamp(input_text, output_text)
+def index(input_text: str, output_text: str) -> bool:
+    return add_conversation_to_db_and_index_with_timestamp(input_text, output_text)
 
 def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
     # Convert the conversation to a vector
@@ -180,11 +181,12 @@ def add_conversation_to_db_and_index_with_timestamp(input_text, output_text):
 
     # Save the FAISS index to a file
     faiss.write_index(faiss_index, FAISS_INDEX_FILE)
+    return True
 
-def search(query, n=1, start_date=None, end_date=None, all_fields=False):
+def search(query: str, n: int = 1, start_date: str = None, end_date: str = None, all_fields: bool = False) -> Generator[Union[Tuple[str, str, str], Tuple[str, str, str, bytes, int]], None, None]:
     return search_conversation_with_date_filter_and_n_results(query, n=n, start_date=start_date, end_date=end_date, all_fields=all_fields)
 
-def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=None, end_date=None, all_fields = False):
+def search_conversation_with_date_filter_and_n_results(query: str, n: int = 1, start_date: str = None, end_date: str = None, all_fields: bool = False) -> Generator[Union[Tuple[str, str, str], Tuple[str, str, str, bytes, int]], None, None]:
     # Convert the query to a vector
     query_vector = model.encode([query])
 
@@ -213,7 +215,7 @@ def search_conversation_with_date_filter_and_n_results(query, n=1, start_date=No
         for row in rows:
             yield row
 
-def init_vector_table_and_index():
+def init_vector_table_and_index() -> bool:
     # Sample invented conversations with timestamps
     sample_conversations = [
 	('How is the weather today?', 'It is sunny and warm.', '2023-07-01 10:00:00'),
@@ -233,8 +235,9 @@ def init_vector_table_and_index():
 
     # Save the FAISS index to a file
     faiss.write_index(faiss_index, FAISS_INDEX_FILE)
+    return True
 
-def prune_db_and_index():
+def prune_db_and_index() -> bool:
     # Delete all rows from the database
     c.execute('DELETE FROM conversation_indexed')
     conn.commit()
@@ -244,30 +247,34 @@ def prune_db_and_index():
 
     # Save the empty FAISS index to a file
     faiss.write_index(faiss_index, FAISS_INDEX_FILE)
+    return True
 
 #########################################
 # PROFILE FUNCTIONS
 #########################################
 
-def set_profile(field_name, value):
-    add_or_update_field_in_profile(field_name, value)
+def set_profile(field_name: str, value: str) -> bool:
+    return add_or_update_field_in_profile(field_name, value)
 
-def add_or_update_field_in_profile(field_name, value):
+def add_or_update_field_in_profile(field_name: str, value: str) -> bool:
     """Add or update a field in the personal profile."""
     c.execute('INSERT OR REPLACE INTO personal_profile (field_name, value) VALUES (?, ?)', (field_name, value))
     conn.commit()
+    return True
 
-def delete_all_fields_from_profile():
+def delete_all_fields_from_profile() -> bool:
     """Remove all fields and values from the personal profile."""
     c.execute('DELETE FROM personal_profile')
     conn.commit()
+    return True
 
-def delete_field_from_profile(field_name):
+def delete_field_from_profile(field_name: str) -> bool:
     """Remove a field from the personal profile."""
     c.execute('DELETE FROM personal_profile WHERE field_name = ?', (field_name,))
     conn.commit()
+    return True
 
-def get_profile(field_name=None):
+def get_profile(field_name: str = None) -> Union[str, List[Tuple[str, str]]]:
     """Retrieve the entire profile or specific fields."""
     if field_name:
         c.execute('SELECT value FROM personal_profile WHERE field_name = ?', (field_name,))
