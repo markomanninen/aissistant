@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-version = 0.2
+version = 0.3
 
 class PostInstallCommand(install):
     def run(self):
