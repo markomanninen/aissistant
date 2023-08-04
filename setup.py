@@ -1,6 +1,8 @@
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
+version = 0.2
+
 class PostInstallCommand(install):
     def run(self):
         install.run(self)
@@ -11,8 +13,8 @@ class PostInstallCommand(install):
 #with open('README.md', 'r') as file:
 #    long_description = file.read()
 
-long_description = """
-# Aissistant v0.0.1
+long_description = f"""
+# Aissistant v{version}
 
 Initialization prompt for persistent conversation vector database and personal profile in ChatGPT using Noteable plugin and `aissistant` module written by Marko T. Manninen ([https://github.com/markomanninen/aissistant/](https://github.com/markomanninen/aissistant/)) ©
 
@@ -118,7 +120,7 @@ Along the way interacting with the user, ChatGPT, and Noteable notebook document
 
 setup(
     name='aissistant',
-    version=0.1,
+    version=version,
 	cmdclass={'install': PostInstallCommand},
     packages=find_packages(),
     install_requires=[
@@ -144,7 +146,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
     ],
-    description="Aissistant v0.1",
+    description=f"Aissistant v{version}",
     long_description=long_description,
     long_description_content_type='text/markdown',
 )
