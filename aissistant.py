@@ -426,17 +426,17 @@ def init_vector_table_and_index() -> bool:
     """
     # Sample invented conversations with timestamps
     sample_conversations = [
-	    ('How is the weather today?', 'It is sunny and warm.', '2023-07-01 10:00:00'),
-	    ('What is your favorite book?', 'I enjoy reading science fiction novels.', '2023-07-01 15:30:00'),
-	    ('Can you recommend a good restaurant?', 'Sure! How about trying the Italian place downtown?', '2023-07-10 12:45:00'),
-	    ('Tell me a joke.', 'Why did the chicken cross the road? To get to the other side!', '2023-07-15 18:00:00'),
-	    ('What is the capital of France?', 'The capital of France is Paris.', '2023-07-16 09:15:00'),
-	    ('How do you make a cake?', 'You can make a cake by mixing flour, sugar, eggs, and other ingredients, then baking them in an oven.', '2023-07-17 14:30:00'),
-	    ('What is the meaning of life?', 'The meaning of life is a philosophical question, and answers may vary depending on personal beliefs.', '2023-07-18 16:45:00'),
-	    ('Can you tell me a story?', 'Once upon a time, in a land far away, there lived a brave knight who embarked on a quest to save a kingdom.', '2023-07-19 20:00:00'),
-	    ('What time is it?', 'I\'m sorry, I can\'t tell the current time as I don\'t have access to real-time data.', '2023-07-20 11:15:00'),
-	    ('How do you calculate the area of a circle?', 'The area of a circle can be calculated using the formula A = πr², where r is the radius of the circle.', '2023-07-21 12:30:00')
-	]
+        ('How is the weather today?', 'It is sunny and warm.', '2023-07-01 10:00:00'),
+        ('What is your favorite book?', 'I enjoy reading science fiction novels.', '2023-07-01 15:30:00'),
+        ('Can you recommend a good restaurant?', 'Sure! How about trying the Italian place downtown?', '2023-07-10 12:45:00'),
+        ('Tell me a joke.', 'Why did the chicken cross the road? To get to the other side!', '2023-07-15 18:00:00'),
+        ('What is the capital of France?', 'The capital of France is Paris.', '2023-07-16 09:15:00'),
+        ('How do you make a cake?', 'You can make a cake by mixing flour, sugar, eggs, and other ingredients, then baking them in an oven.', '2023-07-17 14:30:00'),
+        ('What is the meaning of life?', 'The meaning of life is a philosophical question, and answers may vary depending on personal beliefs.', '2023-07-18 16:45:00'),
+        ('Can you tell me a story?', 'Once upon a time, in a land far away, there lived a brave knight who embarked on a quest to save a kingdom.', '2023-07-19 20:00:00'),
+        ('What time is it?', 'I\'m sorry, I can\'t tell the current time as I don\'t have access to real-time data.', '2023-07-20 11:15:00'),
+        ('How do you calculate the area of a circle?', 'The area of a circle can be calculated using the formula A = πr², where r is the radius of the circle.', '2023-07-21 12:30:00')
+    ]
 
     try:
         # Ensure that the connection is established
@@ -537,7 +537,7 @@ def add_or_update_field_in_profile(field_name: str, value: str) -> bool:
         bool: True if the operation is successful, False if any error occurs.
     """
     try:
-		ensure_connection()
+        ensure_connection()
         c.execute(f'INSERT OR REPLACE INTO {PERSONAL_PROFILE_TABLE} (field_name, value) VALUES (?, ?)', (field_name, value))
         conn.commit()
         return True
@@ -555,7 +555,7 @@ def delete_all_fields_from_profile() -> bool:
         bool: True if the operation is successful, False if any error occurs.
     """
     try:
-		ensure_connection()
+        ensure_connection()
         c.execute(f'DELETE FROM {PERSONAL_PROFILE_TABLE}')
         conn.commit()
         return True
@@ -577,7 +577,7 @@ def delete_field_from_profile(field_name: str) -> bool:
         bool: True if the operation is successful, False if any error occurs.
     """
     try:
-		ensure_connection()
+        ensure_connection()
         c.execute(f'DELETE FROM {PERSONAL_PROFILE_TABLE} WHERE field_name = ?', (field_name,))
         conn.commit()
         return True
@@ -603,7 +603,7 @@ def get_profile(*field_names: str) -> Union[str, List[Tuple[str, str]]]:
             - A list of tuples (field_name, value) if multiple or no field names are provided.
     """
     try:
-		ensure_connection()
+        ensure_connection()
         if len(field_names) == 1:
             c.execute(f'SELECT value FROM {PERSONAL_PROFILE_TABLE} WHERE field_name = ?', (field_names[0],))
             return c.fetchone()[0]
