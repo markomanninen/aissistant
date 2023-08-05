@@ -325,7 +325,7 @@ def add_conversation_to_db_and_index_with_timestamp(input_text: str, output_text
     """
     try:
         # Convert the conversation to a vector
-        conversation_vector = model.encode([input_text + ' ' + output_text])[0]
+        conversation_vector = model.encode([input_text + ' ' + output_text], show_progress_bar=False)[0]
 
         # Get the current timestamp
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -383,7 +383,7 @@ def search(query: str, n: int = 1, start_date: str = None, end_date: str = None,
 def search_conversation_with_date_filter_and_n_results(query: str, n: int = 1, start_date: str = None, end_date: str = None, all_fields: bool = False) -> Generator[Union[Tuple[str, str, str], Tuple[str, str, str, bytes, int]], None, None]:
     try:
         # Convert the query to a vector
-        query_vector = model.encode([query])
+        query_vector = model.encode([query], show_progress_bar=False)
 
         # Perform a search in the FAISS index for the top n matches
         D, I = faiss_index.search(np.array(query_vector).astype('float32'), k=n)
@@ -444,7 +444,7 @@ def init_vector_table_and_index() -> bool:
 
         # Add the sample conversations to the database and FAISS index
         for input_text, output_text, timestamp in sample_conversations:
-            conversation_vector = model.encode([input_text + ' ' + output_text])[0]
+            conversation_vector = model.encode([input_text + ' ' + output_text], show_progress_bar=False)[0]
             query = f'INSERT INTO {CONVERSATIONS_TABLE} (input, output, vector, timestamp) VALUES (?, ?, ?, ?)'
             c.execute(query, (input_text, output_text, conversation_vector.tobytes(), timestamp))
             faiss_index.add(np.array([conversation_vector]))
