@@ -121,16 +121,19 @@ Along the way interacting with the user, ChatGPT, and Noteable notebook document
 setup(
     name='aissistant',
     version=version,
-	cmdclass={'install': PostInstallCommand},
+    cmdclass={'install': PostInstallCommand},
     packages=find_packages(),
     install_requires=[
-        'faiss-gpu',
         'sentence-transformers',
         'numpy',
     ],
+    extras_require={
+        'gpu': ['faiss-gpu'],
+        'cpu': ['faiss-cpu'],
+    },
     entry_points={
         'console_scripts': [
-            'aissistant=aissistant.cli:main',
+            'aissistant=issistant.aissistant.cli:main',
         ],
     },
     author='Marko Manninen',
